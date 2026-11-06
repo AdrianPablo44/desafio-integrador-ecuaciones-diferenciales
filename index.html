@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Epidemiológico EDO - Métodos Numéricos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Configuración de MathJax: habilita $...$ (en línea) y $$...$$ (bloque) -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+    <!-- MathJax CDN para renderizado de fórmulas LaTeX -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .table-scroll::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .table-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        mjx-container {
+            text-transform: none;
+        }
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #1e293b;
+            color: #f8fafc;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans leading-relaxed min-h-screen pb-12">
+
+    <!-- Encabezado Principal -->
+    <header class="bg-indigo-900 text-white py-8 px-4 shadow-md mb-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-indigo-700 text-indigo-100 rounded-full text-xs font-semibold tracking-wide uppercase mb-2">
+                        Ecuaciones Diferenciales Ordinarias (EDO) • Modelado y Simulación
+                    </span>
+                    <h1 class="text-3xl md:text-4xl font-bold">Mitigación Predictiva de Brotes Epidemiológicos</h1>
+                    <p class="text-indigo-200 mt-1 text-sm md:text-base">Plataforma de simulación numérica para la gestión de salud comunitaria (Heun vs RK4)</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 space-y-8">
+
+        <!-- SECCIÓN 0: Nombre e información -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                a) Problema y Contexto Comunitario
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3 text-slate-600 text-sm leading-relaxed">
+                    <p><strong class="text-slate-800">Estudiante:</strong>Adrian Pablo Calizaya Aguilar</p>
+                    <p><strong class="text-slate-800">Materia:</strong>DAT-242 Métodos numéricos</p>
+                    <p><strong class="text-slate-800">Docente</strong>Lic. Brigida Carvajal Blanco</p>
+                    <p><strong class="text-slate-800">II 2026</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN A: PROBLEMA Y CONTEXTO -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                a) Problema y Contexto Comunitario
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3 text-slate-600 text-sm leading-relaxed">
+                    <p><strong class="text-slate-800">Nombre del Desafío:</strong> Control y Contención Predictiva de Brotes Virales en Centros Urbanos y Periurbanos.</p>
+                    <p><strong class="text-slate-800">Comunidad Beneficiaria:</strong> Habitantes del Distrito 4 de la comunidad periurbana (aprox. 5,000 residentes) y personal del Centro de Salud Comunitario San José.</p>
+                    <p><strong class="text-slate-800">Problema Específico:</strong> La saturación abrupta del centro de salud local debido al incremento exponencial no anticipado de casos de infecciones respiratorias de rápida propagación en épocas de alta vulnerabilidad.</p>
+                    <p><strong class="text-slate-800">Relevancia:</strong> Permitir que las autoridades sanitarias comunitarias anticipen la curva de contagio, planifiquen la asignación de insumos médicos y apliquen intervenciones oportunas para aplanar el pico epidémico.</p>
+                </div>
+                <div class="bg-indigo-50/60 p-4 rounded-lg border border-indigo-100 space-y-3">
+                    <div class="border-l-4 border-indigo-600 pl-3">
+                        <h3 class="font-semibold text-indigo-950 text-sm uppercase">Pregunta Concreta del Desafío</h3>
+                        <p class="text-slate-700 italic text-sm mt-1">
+                            "¿En cuántos días la población de personas infectadas activas $I(t)$ alcanzará el 90% de la capacidad de contención del centro de salud local ($K = 5,000$ personas) y cuál es la precisión de los métodos de Heun y RK4 para proyectar dicho comportamiento?"
+                        </p>
+                    </div>
+                    <div class="border-l-4 border-emerald-600 pl-3">
+                        <h3 class="font-semibold text-emerald-950 text-sm uppercase">Meta Cuantificable</h3>
+                        <p class="text-slate-700 text-sm mt-1">
+                            Simular la curva de propagación a lo largo de 30 días, identificando el día exacto en que la población contagiada supera las 4,500 personas (90% de $K$), garantizando un error relativo porcentual inferior al 1% mediante el método RK4.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 p-3 bg-amber-50 border-l-4 border-amber-500 text-amber-900 text-xs rounded">
+                <strong>Aviso Metodológico:</strong> Los parámetros del modelo epidemiológico son hipotéticos y declarados como tales. La simulación no constituye una predicción comprobada sin la integración de datos reales de vigilancia sanitaria de campo.
+            </div>
+        </section>
+
+        <!-- SECCIÓN I: IMPLICACIÓN DE LA INTELIGENCIA ARTIFICIAL EN EL MODELADO Y RESOLUCIÓN -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                b) Implicación e Impacto de la Inteligencia Artificial en la Resolución del Brote
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <!-- Tarjeta 1: Estimación Adaptativa de Parámetros -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                    <div class="flex items-center gap-2 text-indigo-900 font-bold">
+                        <span class="p-1.5 bg-indigo-100 text-indigo-700 rounded-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 012 2h2a2 2 0 012-2z"></path></svg>
+                        </span>
+                        <span>Estimación Dinámica de Parámetros ($r$ y $K$)</span>
+                    </div>
+                    <p class="text-slate-600 text-xs leading-relaxed">
+                        En los modelos deterministas tradicionales, la tasa de contagio ($r$) se asume constante. La IA (mediante redes neuronales informadas por la física o PINNs) permite calibrar $r(t)$ en tiempo real integrando datos heterogéneos de movilidad urbana, factores climáticos y densidad poblacional del sector periurbano.
+                    </p>
+                </div>
+
+                <!-- Tarjeta 2: Reducción de Incertidumbre y Simulación Estocástica -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                    <div class="flex items-center gap-2 text-indigo-900 font-bold">
+                        <span class="p-1.5 bg-indigo-100 text-indigo-700 rounded-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </span>
+                        <span>Optimizadores Numéricos e Integración Híbrida</span>
+                    </div>
+                    <p class="text-slate-600 text-xs leading-relaxed">
+                        Algoritmos de aprendizaje profundo aceleran la resolución de sistemas numéricos complejos. Al combinar algoritmos numéricos clásicos como RK4 con modelos predictivos de Machine Learning, es posible predecir picos epidémicos reduciendo el margen de error computacional ante escenarios no lineales.
+                    </p>
+                </div>
+
+                <!-- Tarjeta 3: Toma de Decisiones y Asignación Sanitaria -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                    <div class="flex items-center gap-2 text-indigo-900 font-bold">
+                        <span class="p-1.5 bg-indigo-100 text-indigo-700 rounded-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </span>
+                        <span>Sistemas de Apoyo a la Decisión Comunitaria</span>
+                    </div>
+                    <p class="text-slate-600 text-xs leading-relaxed">
+                        La IA convierte los pronósticos numéricos en planes de acción prescriptivos: sugiere el momento exacto para desplegar brigadas médicas, reasignar insumos de triaje e implementar restricciones preventivas antes de sobrepasar la capacidad hospitalaria ($K$).
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-indigo-50 border-l-4 border-indigo-600 text-indigo-950 text-xs rounded">
+                <strong>Enfoque Ético y Complementariedad:</strong> La IA actúa como un copiloto de recomendación analítica para los comités de salud de la comunidad. No reemplaza los modelos numéricos rígidos ni las decisiones humanas, sino que aporta mayor precisión y capacidad predictiva ante la incertidumbre epidemiológica.
+            </div>
+        </section>
+
+        <!-- SECCIÓN B: MODELO MATEMÁTICO Y SOLUCIÓN ANALÍTICA -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 002-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                c) Modelo Matemático Epidemiológico y d) Solución Analítica Exacta
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 text-sm mb-2">Variables del Sistema</h3>
+                    <ul class="text-xs text-slate-600 space-y-1">
+                        <li>• <strong>Variable independiente ($t$):</strong> Tiempo de evolución del brote en días.</li>
+                        <li>• <strong>Variable dependiente ($I(t)$):</strong> Número de personas infectadas activas en el día $t$.</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 text-sm mb-2">Parámetros Sanitarios</h3>
+                    <ul class="text-xs text-slate-600 space-y-1">
+                        <li>• <strong>$r$:</strong> Tasa de contagio infectivo diario [$1/(\text{persona} \cdot \text{día})$].</li>
+                        <li>• <strong>$K$:</strong> Capacidad máxima de saturación del sector (personas).</li>
+                        <li>• <strong>$I_0$:</strong> Infectados iniciales detectados $I(0)$ en el día cero.</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 text-sm mb-2">Ecuación Diferencial Epidemiológica</h3>
+                    <p class="text-center my-2 text-sm font-mono text-indigo-700 bg-white p-2 rounded border border-indigo-100">
+                        $$\frac{dI}{dt} = r \cdot I \cdot (K - I)$$
+                    </p>
+                    <p class="text-xs text-slate-500">Condición Inicial: $I(0) = I_0$</p>
+                </div>
+            </div>
+
+            <!-- Solución Analítica -->
+            <div class="bg-indigo-50/40 p-4 rounded-lg border border-indigo-100 text-sm space-y-2">
+                <h3 class="font-bold text-indigo-900">Solución Analítica Exacta del Brote (Separación de Variables)</h3>
+                <p class="text-slate-700 text-xs">
+                    Integrando la EDO epidemiológica mediante descomposición en fracciones parciales se obtiene la curva logística exacta de contagio:
+                </p>
+                <div class="overflow-x-auto text-center py-2 bg-white rounded border border-indigo-100 font-mono text-indigo-900 text-sm">
+                    $$I(t) = \frac{K}{1 + \left(\frac{K - I_0}{I_0}\right) \cdot e^{-r \cdot K \cdot t}}$$
+                </div>
+                <p class="text-xs text-slate-500 italic">
+                    * Comprobación analítica: Evaluando en $t=0$, tenemos $e^0 = 1 \implies I(0) = \frac{K}{1 + \frac{K-I_0}{I_0}} = \frac{K}{\frac{K}{I_0}} = I_0$. Demuestra cumplimiento exacto de la condición inicial.
+                </p>
+            </div>
+        </section>
+
+        <!-- SECCIÓN C: CONTROLES DE ENTRADA Y PARÁMETROS DE SIMULACIÓN -->
+        <section class="bg-indigo-900 text-white rounded-xl p-6 shadow-md">
+            <h2 class="text-2xl font-bold mb-4 border-b border-indigo-700 pb-2 flex items-center gap-2">
+                <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                Configuración de Parámetros Epidemiológicos y Numéricos
+            </h2>
+
+            <div id="alertBox" class="hidden mb-4 p-4 bg-red-500 text-white text-sm rounded shadow">
+                <strong>Error de Entrada:</strong> <span id="alertMessage">Revise los parámetros.</span>
+            </div>
+
+            <form id="simForm" onsubmit="event.preventDefault(); runSimulation();" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-slate-800">
+                <div>
+                    <label class="block text-xs font-bold text-indigo-100 uppercase mb-1">Infectados Iniciales $I_0$ [personas]:</label>
+                    <input type="number" id="inputI0" step="any" value="100" min="1" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-sm font-semibold">
+                    <span class="text-[10px] text-indigo-200">Condición Inicial $I(0) > 0$</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-indigo-100 uppercase mb-1">Capacidad Máxima $K$ [personas]:</label>
+                    <input type="number" id="inputK" step="any" value="5000" min="1" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-sm font-semibold">
+                    <span class="text-[10px] text-indigo-200">Población expuesta / Límite del sector</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-indigo-100 uppercase mb-1">Tasa de Contagio $r$ [1/persona·día]:</label>
+                    <input type="number" id="inputR" step="any" value="0.00015" min="0.000001" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-sm font-semibold">
+                    <span class="text-[10px] text-indigo-200">Velocidad de propagación diaria</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-indigo-100 uppercase mb-1">Tamaño de Paso Principal $h_1$ [días]:</label>
+                    <input type="number" id="inputH1" step="any" value="1.0" min="0.01" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-sm font-semibold">
+                    <span class="text-[10px] text-indigo-200">Paso base de iteración (Ej. 1.0)</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-indigo-100 uppercase mb-1">Paso Comparativo $h_2$ [días]:</label>
+                    <input type="number" id="inputH2" step="any" value="0.5" min="0.01" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-sm font-semibold">
+                    <span class="text-[10px] text-indigo-200">Paso secundario (Ej. 0.5)</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-indigo-100 uppercase mb-1">Tiempo Total $t_{\text{máx}}$ [días]:</label>
+                    <input type="number" id="inputTMax" step="any" value="30" min="1" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-sm font-semibold">
+                    <span class="text-[10px] text-indigo-200">Duración de simulación (Ej. 30)</span>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-3 flex flex-wrap justify-end gap-3 pt-2 items-center">
+                    <span id="dbStatusMessage" class="text-xs font-semibold px-3 py-1.5 rounded hidden"></span>
+                    
+                    
+
+                    <button type="button" onclick="resetDefaults()" class="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 text-indigo-100 rounded-lg text-sm font-medium transition">
+                        Restablecer Valores
+                    </button>
+                    <button type="submit" id="btnCalculate" class="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-indigo-950 font-bold rounded-lg text-sm shadow transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Calcular y Registrar Simulación
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- SECCIÓN H: HISTORIAL EN BASE DE DATOS (GOOGLE SHEETS) -->
+        <section id="sectionHistory" class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b pb-3 border-slate-100">
+                <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s-8-1.79-8-4"></path></svg>
+                    e) Historial de Ensayos Almacenados en la Base de Datos
+                </h2>
+                
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    
+                    <button type="button" onclick="loadDatabaseRecords()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Actualizar Registros
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto table-scroll border border-slate-200 rounded-lg shadow-inner max-h-80">
+                <table id="historyDbTable" class="w-full text-xs text-left font-mono">
+                    <thead class="bg-slate-900 text-slate-100 uppercase sticky top-0">
+                        <!-- Generado por JS -->
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        <!-- Inyectado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN D: VISUALIZACIÓN GRÁFICA -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-2 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                Curva de Propagación Epidemiológica $I(t)$
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Evolución de infectados activos: Solución Exacta vs. Aproximación de Heun (RK2) y RK4 Clásico.</p>
+            <div class="w-full h-80 md:h-96">
+                <canvas id="solutionChart"></canvas>
+            </div>
+        </section>
+
+        <!-- SECCIÓN E: DESGLOSE PASO A PASO POR ITERACIONES (TABLAS DETALLADAS TIPO HOJA DE CÁLCULO) -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 mb-1 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    f) Soluciones Numéricas e Iteraciones Detalladas
+                </h2>
+                <p class="text-xs text-slate-500">Registro paso a paso de factores de pendiente $k_i$, predictores $I^*$ y correctores numéricos para el brote epidemiológico.</p>
+            </div>
+
+            <!-- TABLA DE HEUN -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded border border-amber-200 inline-block">
+                        1. Método de Heun (Runge-Kutta de Orden 2)
+                    </h3>
+                    <span class="text-xs text-slate-500 font-mono">Tamaño de Paso h = <span class="currentH1Val">1.0</span> días</span>
+                </div>
+                <div class="overflow-x-auto table-scroll border border-slate-200 rounded-lg shadow-inner max-h-96">
+                    <table class="w-full text-xs text-left font-mono">
+                        <thead class="uppercase sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 border-b"># (i)</th>
+                                <th class="px-3 py-2 border-b">t<sub>i</sub> (días)</th>
+                                <th class="px-3 py-2 border-b bg-amber-900">I<sub>i</sub> (Heun)</th>
+                                <th class="px-3 py-2 border-b">k<sub>1</sub> = f(t<sub>i</sub>, I<sub>i</sub>)</th>
+                                <th class="px-3 py-2 border-b">I* = I<sub>i</sub> + h·k<sub>1</sub></th>
+                                <th class="px-3 py-2 border-b">k<sub>2</sub> = f(t<sub>i</sub>+h, I*)</th>
+                                <th class="px-3 py-2 border-b">I<sub>i+1</sub> (Corrector)</th>
+                                <th class="px-3 py-2 border-b bg-indigo-900">I<sub>Exacto</sub></th>
+                                <th class="px-3 py-2 border-b">Error Absoluto</th>
+                                <th class="px-3 py-2 border-b">Error Rel. (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="heunTableBody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Inyectado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABLA DE RK4 -->
+            <div class="space-y-2 pt-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded border border-emerald-200 inline-block">
+                        2. Método de Runge-Kutta de Orden 4 (RK4 Clásico)
+                    </h3>
+                    <span class="text-xs text-slate-500 font-mono">Tamaño de Paso h = <span class="currentH1Val">1.0</span> días</span>
+                </div>
+                <div class="overflow-x-auto table-scroll border border-slate-200 rounded-lg shadow-inner max-h-96">
+                    <table class="w-full text-xs text-left font-mono">
+                        <thead class="uppercase sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 border-b"># (i)</th>
+                                <th class="px-3 py-2 border-b">t<sub>i</sub> (días)</th>
+                                <th class="px-3 py-2 border-b bg-emerald-900">I<sub>i</sub> (RK4)</th>
+                                <th class="px-3 py-2 border-b">k<sub>1</sub></th>
+                                <th class="px-3 py-2 border-b">k<sub>2</sub></th>
+                                <th class="px-3 py-2 border-b">k<sub>3</sub></th>
+                                <th class="px-3 py-2 border-b">k<sub>4</sub></th>
+                                <th class="px-3 py-2 border-b">I<sub>i+1</sub></th>
+                                <th class="px-3 py-2 border-b bg-indigo-900">I<sub>Exacto</sub></th>
+                                <th class="px-3 py-2 border-b">Error Abs.</th>
+                                <th class="px-3 py-2 border-b">Error Rel. (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rk4TableBody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Inyectado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN F: ANÁLISIS COMPARATIVO DE PASOS DE INTEGRACIÓN -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-2 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                g) Análisis Comparativo de Errores Numéricos ($h_1$ vs $h_2$)
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Evaluación de la convergencia y precisión al reducir el tamaño de paso en la simulación epidemiológica.</p>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                <table class="w-full text-xs text-center font-mono">
+                    <thead class="bg-indigo-950 text-white uppercase">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Método Numérico</th>
+                            <th class="px-4 py-3">Paso ($h$)</th>
+                            <th class="px-4 py-3">Infectados Finales $I(t_{\text{máx}})$</th>
+                            <th class="px-4 py-3">Valor Exacto $I_{\text{Exacto}}(t_{\text{máx}})$</th>
+                            <th class="px-4 py-3">Error Absoluto Final</th>
+                            <th class="px-4 py-3">Error Relativo % Final</th>
+                            <th class="px-4 py-3">Error Relativo % Máximo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody" class="divide-y divide-slate-200 bg-white">
+                        <!-- Inyectado por JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN G: INTERPRETACIÓN Y CONCLUSIONES -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-b pb-2 border-slate-100 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                h) Interpretación Comunitaria y Conclusiones del Desafío
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-700">
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                    <h3 class="font-bold text-indigo-900 text-base">Impacto y Significado Comunitario</h3>
+                    <p id="interpCommunityText">
+                        Cargando análisis comunitario...
+                    </p>
+                    <div class="p-3 bg-white rounded border border-indigo-100 text-xs space-y-1">
+                        <strong class="text-indigo-900">Respuesta a la Pregunta del Desafío:</strong>
+                        <p id="interpAnswerText" class="text-slate-600 italic"></p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                    <h3 class="font-bold text-indigo-900 text-base">Evaluación de Métodos y Limitaciones</h3>
+                    <p id="interpAccuracyText">
+                        Cargando análisis numérico...
+                    </p>
+                    <div class="p-3 bg-amber-50 rounded border border-amber-200 text-xs text-amber-900">
+                        <strong>Limitaciones del Modelo Epidemiológico:</strong>
+                        <p class="mt-1 text-slate-700">
+                            El modelo considera una tasa de contagio constante ($r$) y una población cerrada sin inmunidad o intervenciones de aislamiento en tiempo real. No debe interpretarse como una predicción comprobada sin calibración con datos de salud pública.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        
+        
+
+    </main>
+
+    <!-- LÓGICA DE CÁLCULO Y GRÁFICOS -->
+    <script>
+        // URL de Google Apps Script
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwwGtVy0-gU_wdV_hy_Byfj_KOVt3Ywc9UKPmm-pVvtt2RiMPXw9DFzYJm7guZkog/exec';
+
+        let myChart = null;
+
+        // EDO Epidemiológica: dI/dt = f(t, I) = r * I * (K - I)
+        function f(t, I, r, K) {
+            return r * I * (K - I);
+        }
+
+        // Solución Analítica Exacta para la población contagiada
+        function exactI(t, I0, K, r) {
+            const factor = (K - I0) / I0;
+            return K / (1 + factor * Math.exp(-r * K * t));
+        }
+
+        // Simulación principal
+        function runSimulation() {
+            const I0 = parseFloat(document.getElementById('inputI0').value);
+            const K = parseFloat(document.getElementById('inputK').value);
+            const r = parseFloat(document.getElementById('inputR').value);
+            const h1 = parseFloat(document.getElementById('inputH1').value);
+            const h2 = parseFloat(document.getElementById('inputH2').value);
+            const tMax = parseFloat(document.getElementById('inputTMax').value);
+
+            const alertBox = document.getElementById('alertBox');
+            const alertMsg = document.getElementById('alertMessage');
+            
+            if (isNaN(I0) || isNaN(K) || isNaN(r) || isNaN(h1) || isNaN(h2) || isNaN(tMax) ||
+                I0 <= 0 || K <= 0 || r <= 0 || h1 <= 0 || h2 <= 0 || tMax <= 0 || I0 >= K) {
+                alertMsg.innerHTML = "Ingrese valores estrictamente positivos y asegúrese de que los infectados iniciales I₀ sean menores que la capacidad K.";
+                alertBox.classList.remove('hidden');
+                return;
+            }
+            alertBox.classList.add('hidden');
+
+            document.querySelectorAll('.currentH1Val').forEach(el => el.innerText = h1);
+
+            const resHeunH1 = simulateHeun(I0, K, r, h1, tMax);
+            const resRK4H1 = simulateRK4(I0, K, r, h1, tMax);
+            const resHeunH2 = simulateHeun(I0, K, r, h2, tMax);
+            const resRK4H2 = simulateRK4(I0, K, r, h2, tMax);
+
+            renderHeunTable(resHeunH1);
+            renderRK4Table(resRK4H1);
+            renderChart(resHeunH1, resRK4H1, I0, K, r, tMax);
+            renderComparisonTable(resHeunH1, resRK4H1, resHeunH2, resRK4H2, h1, h2);
+            updateInterpretation(resHeunH1, resRK4H1, I0, K, r, tMax);
+
+            // Registrar en la Base de Datos
+            saveToDatabase(I0, K, r, h1, h2, tMax, resHeunH1, resRK4H1);
+        }
+
+        // Función infalible para enviar a Google Sheets en entornos locales y servidor (Sin iframe ni bloqueos CORS)
+        function saveToDatabase(I0, K, r, h1, h2, tMax, heunData, rk4Data) {
+            const btn = document.getElementById('btnCalculate');
+            const statusMsg = document.getElementById('dbStatusMessage');
+
+            btn.disabled = true;
+            statusMsg.className = "text-xs font-semibold px-3 py-1.5 rounded bg-amber-100 text-amber-800 animate-pulse";
+            statusMsg.innerText = "En espera: Guardando registro en Google Sheets...";
+            statusMsg.classList.remove('hidden');
+
+            const lastHeun = heunData[heunData.length - 1] || {};
+            const lastRK4 = rk4Data[rk4Data.length - 1] || {};
+
+            // Construir los parámetros codificados en formato Formulario (x-www-form-urlencoded)
+            const formData = new URLSearchParams();
+            formData.append('I0', I0);
+            formData.append('K', K);
+            formData.append('r', r);
+            formData.append('h1', h1);
+            formData.append('h2', h2);
+            formData.append('tMax', tMax);
+            formData.append('I_Heun', (lastHeun.I || 0).toFixed(4));
+            formData.append('I_RK4', (lastRK4.I || 0).toFixed(4));
+            formData.append('I_Exacto', (lastRK4.exact || 0).toFixed(4));
+            formData.append('Err_Heun', (lastHeun.errRelPct || 0).toFixed(4));
+            formData.append('Err_RK4', (lastRK4.errRelPct || 0).toFixed(4));
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors', // Permite enviar la petición desde origen local o GitHub Pages
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(() => {
+                statusMsg.className = "text-xs font-semibold px-3 py-1.5 rounded bg-emerald-100 text-emerald-800";
+                statusMsg.innerText = "¡Simulación registrada con éxito en la base de datos!";
+                btn.disabled = false;
+                
+                // Dar 1.5 segundos a Google Sheets para procesar la fila antes de refrescar
+                setTimeout(loadDatabaseRecords, 1500);
+            })
+            .catch(err => {
+                console.error('Error al registrar:', err);
+                statusMsg.className = "text-xs font-semibold px-3 py-1.5 rounded bg-red-100 text-red-800";
+                statusMsg.innerText = "Error al conectar con la base de datos.";
+                btn.disabled = false;
+            });
+        }
+
+        // Leer e inyectar historial desde Google Sheets
+        function loadDatabaseRecords() {
+            const tableHead = document.querySelector('#historyDbTable thead');
+            const tableBody = document.querySelector('#historyDbTable tbody');
+
+            fetch(scriptURL)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || data.length === 0) return;
+
+                    // Primera fila como encabezados
+                    tableHead.innerHTML = '';
+                    const headRow = document.createElement('tr');
+                    data[0].forEach(col => {
+                        const th = document.createElement('th');
+                        th.className = "px-3 py-2 border-b";
+                        th.textContent = col;
+                        headRow.appendChild(th);
+                    });
+                    tableHead.appendChild(headRow);
+
+                    // Filas restantes como cuerpo de tabla
+                    tableBody.innerHTML = '';
+                    data.slice(1).reverse().forEach((fila, idx) => {
+                        const tr = document.createElement('tr');
+                        tr.className = idx % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50 hover:bg-slate-100';
+                        fila.forEach((celda, colIdx) => {
+                            const td = document.createElement('td');
+                            td.className = "px-3 py-1.5 border-b border-slate-100";
+                            
+                            // MODIFICACIÓN AQUÍ: Si es la primera columna (colIdx === 0), formatear la fecha
+                            if (colIdx === 0 && celda) {
+                                const fechaObj = new Date(celda);
+                                td.textContent = !isNaN(fechaObj.getTime()) 
+                                    ? fechaObj.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }) 
+                                    : celda;
+                            } else {
+                                td.textContent = celda;
+                            }
+
+                            tr.appendChild(td);
+                        });
+                        tableBody.appendChild(tr);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error al cargar historial:', err);
+                });
+        }
+
+        // Método de Heun (RK2)
+        function simulateHeun(I0, K, r, h, tMax) {
+            const steps = Math.floor(tMax / h);
+            const data = [];
+            let t = 0;
+            let I_val = I0;
+
+            for (let i = 0; i <= steps; i++) {
+                const iExact = exactI(t, I0, K, r);
+                const errAbs = Math.abs(iExact - I_val);
+                const errRelPct = iExact !== 0 ? (errAbs / iExact) * 100 : 0;
+
+                const k1 = f(t, I_val, r, K);
+                const I_star = I_val + h * k1;
+                const k2 = f(t + h, I_star, r, K);
+                const I_next = I_val + (h / 2) * (k1 + k2);
+
+                data.push({
+                    i: i,
+                    t: t,
+                    I: I_val,
+                    k1: k1,
+                    IStar: I_star,
+                    k2: k2,
+                    INext: I_next,
+                    exact: iExact,
+                    errAbs: errAbs,
+                    errRelPct: errRelPct
+                });
+
+                I_val = I_next;
+                t = (i + 1) * h;
+            }
+            return data;
+        }
+
+        // Método RK4
+        function simulateRK4(I0, K, r, h, tMax) {
+            const steps = Math.floor(tMax / h);
+            const data = [];
+            let t = 0;
+            let I_val = I0;
+
+            for (let i = 0; i <= steps; i++) {
+                const iExact = exactI(t, I0, K, r);
+                const errAbs = Math.abs(iExact - I_val);
+                const errRelPct = iExact !== 0 ? (errAbs / iExact) * 100 : 0;
+
+                const k1 = f(t, I_val, r, K);
+                const k2 = f(t + h / 2, I_val + (h / 2) * k1, r, K);
+                const k3 = f(t + h / 2, I_val + (h / 2) * k2, r, K);
+                const k4 = f(t + h, I_val + h * k3, r, K);
+
+                const I_next = I_val + (h / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+
+                data.push({
+                    i: i,
+                    t: t,
+                    I: I_val,
+                    k1: k1,
+                    k2: k2,
+                    k3: k3,
+                    k4: k4,
+                    INext: I_next,
+                    exact: iExact,
+                    errAbs: errAbs,
+                    errRelPct: errRelPct
+                });
+
+                I_val = I_next;
+                t = (i + 1) * h;
+            }
+            return data;
+        }
+
+        // Renderizado Tabla de Heun
+        function renderHeunTable(data) {
+            const tbody = document.getElementById('heunTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = row.i % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/50 hover:bg-slate-100';
+                tr.innerHTML = `
+                    <td class="px-3 py-1.5 font-bold">${row.i}</td>
+                    <td class="px-3 py-1.5">${row.t.toFixed(2)}</td>
+                    <td class="px-3 py-1.5 font-bold text-amber-700 bg-amber-50/40">${row.I.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.k1.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.IStar.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.k2.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.INext.toFixed(4)}</td>
+                    <td class="px-3 py-1.5 font-bold text-indigo-900 bg-indigo-50/30">${row.exact.toFixed(4)}</td>
+                    <td class="px-3 py-1.5 text-rose-600">${row.errAbs.toFixed(4)}</td>
+                    <td class="px-3 py-1.5 font-semibold text-rose-700">${row.errRelPct.toFixed(4)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Renderizado Tabla de RK4
+        function renderRK4Table(data) {
+            const tbody = document.getElementById('rk4TableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = row.i % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/50 hover:bg-slate-100';
+                tr.innerHTML = `
+                    <td class="px-3 py-1.5 font-bold">${row.i}</td>
+                    <td class="px-3 py-1.5">${row.t.toFixed(2)}</td>
+                    <td class="px-3 py-1.5 font-bold text-emerald-700 bg-emerald-50/40">${row.I.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.k1.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.k2.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.k3.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.k4.toFixed(4)}</td>
+                    <td class="px-3 py-1.5">${row.INext.toFixed(4)}</td>
+                    <td class="px-3 py-1.5 font-bold text-indigo-900 bg-indigo-50/30">${row.exact.toFixed(4)}</td>
+                    <td class="px-3 py-1.5 text-rose-600">${row.errAbs.toFixed(4)}</td>
+                    <td class="px-3 py-1.5 font-semibold text-rose-700">${row.errRelPct.toFixed(4)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Renderizado Gráfico Principal
+        function renderChart(heunData, rk4Data, I0, K, r, tMax) {
+            const ctx = document.getElementById('solutionChart').getContext('2d');
+
+            const fineT = [];
+            const fineExact = [];
+            const numPoints = 100;
+            for (let i = 0; i <= numPoints; i++) {
+                const tVal = (tMax / numPoints) * i;
+                fineT.push(tVal);
+                fineExact.push(exactI(tVal, I0, K, r));
+            }
+
+            const heunT = heunData.map(d => d.t);
+            const heunI = heunData.map(d => d.I);
+            const rk4T = rk4Data.map(d => d.t);
+            const rk4I = rk4Data.map(d => d.I);
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: fineT,
+                    datasets: [
+                        {
+                            label: 'Solución Analítica Exacta I(t)',
+                            data: fineExact,
+                            borderColor: '#312e81',
+                            backgroundColor: 'rgba(49, 46, 129, 0.05)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Método de Heun (RK2)',
+                            data: heunT.map((t, idx) => ({ x: t, y: heunI[idx] })),
+                            borderColor: '#d97706',
+                            backgroundColor: '#d97706',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 4,
+                            fill: false,
+                            showLine: true
+                        },
+                        {
+                            label: 'Método RK4 Clásico',
+                            data: rk4T.map((t, idx) => ({ x: t, y: rk4I[idx] })),
+                            borderColor: '#059669',
+                            backgroundColor: '#059669',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointStyle: 'rectRot',
+                            fill: false,
+                            showLine: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Tiempo t [días]', font: { weight: 'bold' } },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Infectados Activos I(t) [personas]', font: { weight: 'bold' } },
+                            grid: { color: '#f1f5f9' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+        }
+
+        // Renderizado Tabla Comparativa
+        function renderComparisonTable(heun1, rk41, heun2, rk42, h1, h2) {
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+
+            const calcMetrics = (data, hVal, name) => {
+                if (!data || data.length === 0) {
+                    return { name, h: hVal, lastI: 0, lastExact: 0, lastErrAbs: 0, lastErrRel: 0, maxErrRel: 0 };
+                }
+                const last = data[data.length - 1];
+                const maxRelErr = Math.max(...data.map(d => d.errRelPct || 0));
+                return {
+                    name: name,
+                    h: hVal,
+                    lastI: last.I || 0,
+                    lastExact: last.exact || 0,
+                    lastErrAbs: last.errAbs || 0,
+                    lastErrRel: last.errRelPct || 0,
+                    maxErrRel: maxRelErr
+                };
+            };
+
+            const rows = [
+                calcMetrics(heun1, h1, 'Heun (RK2)'),
+                calcMetrics(rk41, h1, 'RK4 Clásico'),
+                calcMetrics(heun2, h2, 'Heun (RK2)'),
+                calcMetrics(rk42, h2, 'RK4 Clásico')
+            ];
+
+            rows.forEach((r, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                tr.innerHTML = `
+                    <td class="px-4 py-2.5 text-left font-bold ${r.name.includes('RK4') ? 'text-emerald-700' : 'text-amber-700'}">${r.name}</td>
+                    <td class="px-4 py-2.5 font-bold">${r.h}</td>
+                    <td class="px-4 py-2.5">${r.lastI.toFixed(4)}</td>
+                    <td class="px-4 py-2.5 font-bold text-indigo-900">${r.lastExact.toFixed(4)}</td>
+                    <td class="px-4 py-2.5 text-rose-600">${r.lastErrAbs.toFixed(4)}</td>
+                    <td class="px-4 py-2.5">${r.lastErrRel.toFixed(4)}%</td>
+                    <td class="px-4 py-2.5 font-bold text-rose-700">${r.maxErrRel.toFixed(4)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Actualización de Interpretación
+        function updateInterpretation(heunData, rk4Data, I0, K, r, tMax) {
+            if (!heunData.length || !rk4Data.length) return;
+            const target = 0.9 * K;
+            let thresholdDayExact = null;
+            let thresholdDayRK4 = null;
+
+            for (let t = 0; t <= tMax; t += 0.1) {
+                if (exactI(t, I0, K, r) >= target) {
+                    thresholdDayExact = t.toFixed(1);
+                    break;
+                }
+            }
+
+            for (let d of rk4Data) {
+                if (d.I >= target) {
+                    thresholdDayRK4 = d.t.toFixed(1);
+                    break;
+                }
+            }
+
+            const lastRK4Err = rk4Data[rk4Data.length - 1].errRelPct || 0;
+            const lastHeunErr = heunData[heunData.length - 1].errRelPct || 0;
+
+            document.getElementById('interpCommunityText').innerText = 
+                `El modelo predice una curva sigmoide (logística) de contagio. Iniciando con ${I0} casos activos detectados en un sector de capacidad límite de ${K} residentes, la velocidad de propagación alcanza su máximo en la fase media y se estabiliza cerca del día en que se aproxima al límite de saturación.`;
+
+            document.getElementById('interpAnswerText').innerText = 
+                thresholdDayExact 
+                ? `La simulación determina que el centro de salud alcanzará el 90% de su capacidad (${target.toLocaleString()} personas contagiadas) aproximadamente en el día ${thresholdDayExact}. La proyección con el método RK4 identifica este umbral crítico en el día ${thresholdDayRK4 || 'N/D'}.`
+                : `Durante el periodo simulado de ${tMax} días no se alcanza el 90% de la capacidad crítica (${target.toLocaleString()} personas).`;
+
+            document.getElementById('interpAccuracyText').innerText = 
+                `El método de Runge-Kutta de 4to Orden (RK4) demostró una precisión superior con un error relativo final de solo ${lastRK4Err.toFixed(4)}%, en comparación con el ${lastHeunErr.toFixed(4)}% obtenido por el método de Heun. Por consiguiente, RK4 minimiza el error numérico en la proyección epidemiológica.`;
+        }
+
+        function resetDefaults() {
+            document.getElementById('inputI0').value = 100;
+            document.getElementById('inputK').value = 5000;
+            document.getElementById('inputR').value = 0.00015;
+            document.getElementById('inputH1').value = 1.0;
+            document.getElementById('inputH2').value = 0.5;
+            document.getElementById('inputTMax').value = 30;
+            runSimulation();
+        }
+
+        window.onload = function() {
+            runSimulation();
+            loadDatabaseRecords();
+        };
+    </script>
+</body>
+</html>
